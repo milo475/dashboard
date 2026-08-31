@@ -30,14 +30,22 @@ ALIASES = {
 # desktop backdrop and the window manager would otherwise crowd the ranking.
 IGNORED_APPS = {
     "wrapper-2.0",
-    "xfce4-panel",
     "xfdesktop",
     "xfwm4",
     "xfsettingsd",
-    "xfce4-session",
     "desktop",
     "",
 }
+
+# Whole families of shell plumbing rather than single names: every xfce4-*
+# settings dialog and every xdg-desktop-portal backend is the desktop talking
+# to itself, not an app the user chose to spend time in.
+IGNORED_PREFIXES = ("xfce4-", "xdg-desktop-portal", "xfce-")
+
+
+def _ignored(app):
+    key = (app or "").strip().lower()
+    return key in IGNORED_APPS or key.startswith(IGNORED_PREFIXES)
 
 
 class ActivityWatchError(RuntimeError):
@@ -115,8 +123,9 @@ class ActivityWatchClient:
             )
         return window, afk
 
-    def _query(self, window_bucket, afk_bucket, periods):
+    def _query(self, window_bucket, afk_bucket, periods, keys=("app",)):
         """One query2 request covering every day, so we hit the server once."""
+        merge_keys = ", ".join(f'"{key}"' for key in keys)
         lines = [f'window = query_bucket("{window_bucket}");']
         if afk_bucket:
             lines += [
@@ -125,7 +134,7 @@ class ActivityWatchClient:
                 "window = filter_period_intersect(window, afk);",
             ]
         lines += [
-            'merged = merge_events_by_keys(window, ["app"]);',
+            f"merged = merge_events_by_keys(window, [{merge_keys}]);",
             "RETURN = sort_by_duration(merged);",
         ]
         payload = {
@@ -165,12 +174,16 @@ class ActivityWatchClient:
             out.append(events)
         return out
 
-    def usage(self, days=DAYS, top_n=TOP_N):
+    def _collect(self, periods, keys=("app",)):
+        """Per-period merged events, with every fallback applied.
+
+        Returns (per_day_events, afk_filtered). Shared by the usage chart and
+        the productivity classifier so they always agree on the same numbers.
+        """
         window_bucket, afk_bucket = self._pick_buckets()
-        periods = _day_bounds(days)
         afk_filtered = bool(afk_bucket)
         try:
-            per_day_events = self._query(window_bucket, afk_bucket, periods)
+            per_day_events = self._query(window_bucket, afk_bucket, periods, keys)
         except ActivityWatchError:
             per_day_events = self._raw_fallback(window_bucket, periods)
             afk_filtered = False
@@ -180,12 +193,52 @@ class ActivityWatchClient:
         # window event. Fall back to unfiltered time rather than showing zero.
         if afk_bucket and not _has_events(per_day_events):
             try:
-                unfiltered = self._query(window_bucket, None, periods)
+                unfiltered = self._query(window_bucket, None, periods, keys)
             except ActivityWatchError:
                 unfiltered = self._raw_fallback(window_bucket, periods)
             if _has_events(unfiltered):
                 per_day_events = unfiltered
                 afk_filtered = False
+        return window_bucket, per_day_events, afk_filtered
+
+    def sessions(self, days=DAYS):
+        """Per-day (app, title, seconds) rows, for classifying how time was spent.
+
+        The usage chart merges on `app` alone; classification also needs the
+        window title, because a browser is productive or not depending on the
+        tab that was in front.
+        """
+        periods = _day_bounds(days)
+        bucket, per_day_events, afk_filtered = self._collect(periods, ("app", "title"))
+        days_out = []
+        for (start, _end), events in zip(periods, per_day_events):
+            rows = []
+            for event in events or []:
+                data = (event or {}).get("data") or {}
+                raw = (data.get("app") or "").strip()
+                if _ignored(raw):
+                    continue
+                seconds = float((event or {}).get("duration") or 0)
+                if seconds <= 0:
+                    continue
+                rows.append(
+                    {
+                        "app": raw,
+                        "pretty": _pretty(raw),
+                        "title": (data.get("title") or "").strip(),
+                        "seconds": seconds,
+                    }
+                )
+            days_out.append({"date": start.strftime("%Y-%m-%d"), "rows": rows})
+        return {
+            "bucket": bucket,
+            "afk_filtered": afk_filtered,
+            "days": days_out,
+        }
+
+    def usage(self, days=DAYS, top_n=TOP_N):
+        periods = _day_bounds(days)
+        window_bucket, per_day_events, afk_filtered = self._collect(periods)
 
         # date -> {app: seconds}
         per_day = []
@@ -195,7 +248,7 @@ class ActivityWatchClient:
             for event in events or []:
                 data = (event or {}).get("data") or {}
                 raw = (data.get("app") or "").strip()
-                if raw.lower() in IGNORED_APPS:
+                if _ignored(raw):
                     continue
                 app = _pretty(raw)
                 seconds = float((event or {}).get("duration") or 0)

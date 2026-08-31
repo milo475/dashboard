@@ -179,7 +179,7 @@ export function UsageCard() {
                 axisLine={false}
                 tick={{ fill: AXIS_TEXT, fontSize: 12 }}
                 tickFormatter={(name) =>
-                  name.length > 15 ? `${name.slice(0, 14)}…` : name
+                  name.length > 13 ? `${name.slice(0, 12)}…` : name
                 }
               />
               <Tooltip

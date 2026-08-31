@@ -41,3 +41,18 @@ export function usePolling(path, intervalMs) {
 
   return { data, error, loading, updatedAt, reload: load }
 }
+
+/* POST JSON and return the parsed body.
+ *
+ * Mirrors the GET contract: the backend answers 200 with {available:false} for
+ * a refused write, so callers check `available` rather than catching. A thrown
+ * error here means the backend itself could not be reached. */
+export async function postJson(path, body) {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(body ?? {}),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}

@@ -1,33 +1,9 @@
 import { Card, StateBlock } from './Card.jsx'
-import { usePolling } from '../api.js'
-import { DOWN, UP } from '../theme.js'
-
 /* Sparkline over the prices the backend has observed since it started.
  * The Finnhub free tier has no candle endpoint, so the series builds up live. */
-function Sparkline({ points, color }) {
-  if (!points || points.length < 2) {
-    return <span className="spark-empty" aria-hidden="true">—</span>
-  }
-  const w = 68
-  const h = 22
-  const pad = 2
-  const min = Math.min(...points)
-  const max = Math.max(...points)
-  const span = max - min || 1
-  const step = (w - pad * 2) / (points.length - 1)
-  const d = points
-    .map((value, index) => {
-      const x = pad + index * step
-      const y = h - pad - ((value - min) / span) * (h - pad * 2)
-      return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
-    })
-    .join(' ')
-  return (
-    <svg className="spark" width={w} height={h} viewBox={`0 0 ${w} ${h}`} role="presentation">
-      <path d={d} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
+import { Sparkline } from './Sparkline.jsx'
+import { usePolling } from '../api.js'
+import { DOWN, UP } from '../theme.js'
 
 const money = (value) =>
   typeof value === 'number'

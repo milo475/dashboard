@@ -3,6 +3,10 @@ import { Clock } from './components/Clock.jsx'
 import { UsageCard } from './components/UsageCard.jsx'
 import { StocksCard } from './components/StocksCard.jsx'
 import { NewsCard } from './components/NewsCard.jsx'
+import { SystemCard } from './components/SystemCard.jsx'
+import { FocusCard } from './components/FocusCard.jsx'
+import { GithubCard } from './components/GithubCard.jsx'
+import { ProductivityCard } from './components/ProductivityCard.jsx'
 
 function ClaudeButton() {
   const [status, setStatus] = useState(null)
@@ -56,14 +60,17 @@ export default function App() {
           <ClaudeButton />
         </div>
       </header>
+      {/* Three columns at 1920x1080, placed by named area rather than by DOM
+        * order: charts left, the two glanceable cards down the middle, the
+        * feeds that scroll on the right. */}
       <main className="grid">
-        <div className="col-left">
-          <UsageCard />
-        </div>
-        <div className="col-right">
-          <StocksCard />
-          <NewsCard />
-        </div>
+        <UsageCard />
+        <ProductivityCard />
+        <SystemCard />
+        <FocusCard />
+        <StocksCard />
+        <GithubCard />
+        <NewsCard />
       </main>
     </div>
   )

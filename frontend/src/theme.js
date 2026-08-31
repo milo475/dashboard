@@ -22,11 +22,21 @@ export const SERIES = [
 ]
 
 export const OTHER_COLOR = '#6b7688' // neutral: "Other" is a remainder, not an identity
+
+/* Productivity categories reuse validated slots rather than inventing colors:
+ * teal (slot 0) / neutral grey / terracotta (slot 3). Those three are the
+ * widest-separated trio in the set under normal and CVD vision alike. */
+export const CATEGORY = {
+  productive: SERIES[0],
+  neutral: OTHER_COLOR,
+  leisure: SERIES[3],
+}
 export const SURFACE = '#0a0e14'
 export const ACCENT = '#00ffcc'
 export const ACCENT_SOFT = '#a78bfa'
 export const UP = '#3fd68b'
 export const DOWN = '#ff6b7a'
+export const WARN = '#ffb45c' // temperature "warm" band - text-legible on #0a0e14
 
 const STORAGE_KEY = 'dashboard.appColors.v1'
 

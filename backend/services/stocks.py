@@ -14,6 +14,8 @@ import requests
 API = "https://finnhub.io/api/v1"
 TIMEOUT = 8
 MAX_POINTS = 60
+RETRIES = 1
+RETRY_DELAY = 0.6
 
 SYMBOLS = [
     ("AAPL", "Apple"),
@@ -31,6 +33,13 @@ SYMBOLS = [
 
 class StocksError(RuntimeError):
     """Raised when quotes cannot be fetched at all."""
+
+
+def _redact(message, secret):
+    """requests puts the full URL in its error text, and our URL carries the
+    API key. Errors reach the browser, so strip the key before it travels."""
+    text = str(message)
+    return text.replace(secret, "***") if secret else text
 
 
 class PriceHistory:
@@ -82,7 +91,7 @@ class StocksClient:
         self.api_key = (api_key or "").strip()
         self.history = PriceHistory(os.path.join(cache_dir, "price_history.json"))
 
-    def _quote(self, symbol):
+    def _quote(self, symbol, attempt=0):
         resp = requests.get(
             f"{API}/quote",
             params={"symbol": symbol, "token": self.api_key},
@@ -90,6 +99,12 @@ class StocksClient:
         )
         if resp.status_code == 429:
             raise StocksError("Finnhub rate limit reached")
+        # The free tier 503s sporadically on individual symbols. One short
+        # retry recovers most of them; more than that would just add latency
+        # to a genuine outage, which the cache already covers.
+        if resp.status_code >= 500 and attempt < RETRIES:
+            time.sleep(RETRY_DELAY)
+            return self._quote(symbol, attempt + 1)
         resp.raise_for_status()
         payload = resp.json()
         if isinstance(payload, dict) and payload.get("error"):
@@ -111,7 +126,7 @@ class StocksClient:
                     "symbol": symbol,
                     "name": name,
                     "ok": False,
-                    "error": str(exc),
+                    "error": _redact(exc, self.api_key),
                     "sparkline": self.history.get(symbol),
                 }
             price = data.get("c")

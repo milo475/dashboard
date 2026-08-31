@@ -1,0 +1,5 @@
+{
+  "productive": ["code", "vs code", "terminal", "gnome-terminal", "claude"],
+  "neutral": ["files", "settings"],
+  "leisure": ["youtube", "netflix", "steam"]
+}
