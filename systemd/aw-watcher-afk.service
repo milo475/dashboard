@@ -1,0 +1,15 @@
+[Unit]
+Description=ActivityWatch AFK watcher
+After=activitywatch.service graphical-session.target
+Wants=activitywatch.service
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/activitywatch/aw-watcher-afk/aw-watcher-afk
+Environment=DISPLAY=:0
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,15 @@
+[Unit]
+Description=Home Dashboard backend (Flask API)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/home-dashboard/backend
+ExecStart=%h/home-dashboard/backend/venv/bin/python %h/home-dashboard/backend/app.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target

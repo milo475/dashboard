@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Home Dashboard
+GenericName=Desktop dashboard
+Comment=Opens the personal dashboard fullscreen on HDMI-1
+# The short sleep lets the XFCE session finish bringing up the panel and the
+# monitor layout, so xrandr reports the real geometry before the window opens.
+Exec=/bin/bash -c "sleep 8; exec /home/kali/home-dashboard/start.sh"
+Icon=utilities-system-monitor
+Terminal=false
+StartupNotify=false
+X-GNOME-Autostart-enabled=true
