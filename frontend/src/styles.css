@@ -1173,7 +1173,7 @@ li:hover > .todo-remove, li:hover > .routine-remove, .block:hover .block-remove,
 .folder-grid {
   display: grid;
   /* as many columns as 64px tiles fit, so ten shortcuts stay on three rows */
-  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
   gap: 8px 6px;
   align-content: start;
   min-height: 0;
