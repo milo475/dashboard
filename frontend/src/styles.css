@@ -805,8 +805,10 @@ body {
 /* The layout is authored for 1920x1080. On a much wider panel (e.g. a 3440x1440
  * ultrawide) scale the whole thing up rather than leaving tiny text stranded in
  * a sea of background - zoom keeps every proportion, charts included. */
+/* 1.3 keeps the effective height above 1080px on a 3440x1440 panel, so the
+ * planner's top row (calendar, to-do note, file list) never has to scroll. */
 @media (min-width: 2400px) {
-  body { zoom: 1.45; }
+  body { zoom: 1.3; }
 }
 
 /* 1920x1080 is the design target; keep it sane on smaller panels too. */
