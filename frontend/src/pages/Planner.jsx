@@ -16,7 +16,8 @@ import { PhotosCard } from '../components/planner/PhotosCard.jsx'
  * schedule card must reach it without waiting for the next poll. */
 export function Planner() {
   const schedule = usePolling('/api/schedule', 60_000)
-  const photos = usePolling('/api/photos', 60_000)
+  // A short poll so a file copied into the folder shows up within seconds.
+  const photos = usePolling('/api/photos', 20_000)
   const [localSchedule, setLocalSchedule] = useState(null)
   const [scheduleError, setScheduleError] = useState(null)
 
@@ -59,7 +60,7 @@ export function Planner() {
       <ScheduleCard
         state={scheduleState}
         loading={schedule.loading && !schedule.data}
-        error={schedule.error}
+        error={schedule.data ? null : schedule.error}
         unavailable={schedule.data && !schedule.data.available ? schedule.data : null}
         saveError={scheduleError}
         onChange={saveSchedule}
@@ -68,7 +69,7 @@ export function Planner() {
         photos={photoList}
         dir={photos.data?.dir}
         loading={photos.loading && !photos.data}
-        error={photos.error}
+        error={photos.data ? null : photos.error}
         reload={photos.reload}
       />
     </main>

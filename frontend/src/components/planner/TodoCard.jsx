@@ -99,7 +99,7 @@ export function TodoCard() {
   let body
   if (loading && !data) {
     body = <StateBlock kind="loading" title="Loading lists…" />
-  } else if (error) {
+  } else if (error && !state) {
     body = (
       <StateBlock
         kind="error"

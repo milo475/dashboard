@@ -71,7 +71,7 @@ export function PlacesCard() {
   const fileRows = files.data?.available ? files.data.files : []
 
   let body
-  if (folders.error && files.error) {
+  if (folders.error && files.error && !folders.data && !files.data) {
     body = (
       <StateBlock
         kind="error"

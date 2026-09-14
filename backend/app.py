@@ -33,7 +33,7 @@ SYSTEM_TTL = 2      # kernel counters; the card polls every 5s
 GITHUB_TTL = 300    # 60 req/h unauthenticated, so 5 minutes is plenty
 PRODUCTIVITY_TTL = 60
 FILES_TTL = 20      # a directory scan; the card polls every 30s
-PHOTOS_TTL = 30
+PHOTOS_TTL = 10     # one directory scan; the card polls every 20s
 
 # How long a failing endpoint may keep serving its last good value before it
 # admits defeat and the card switches to "no data".
