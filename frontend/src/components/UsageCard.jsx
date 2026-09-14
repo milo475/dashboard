@@ -11,11 +11,9 @@ import {
   YAxis,
 } from 'recharts'
 import { Card, StateBlock } from './Card.jsx'
-import { colorForApp, SURFACE } from '../theme.js'
+import { colorForApp } from '../theme.js'
 import { usePolling } from '../api.js'
-
-const GRID = '#1b2430'
-const AXIS_TEXT = '#7d8b9e'
+import { usePalette } from '../ThemeContext.jsx'
 
 function fmtHours(hours) {
   if (!hours) return '0m'
@@ -59,12 +57,12 @@ function TotalTooltip({ active, payload }) {
   )
 }
 
-function Legend({ apps }) {
+function Legend({ apps, palette }) {
   return (
     <ul className="legend">
       {apps.map((app) => (
         <li key={app}>
-          <span className="swatch" style={{ background: colorForApp(app) }} />
+          <span className="swatch" style={{ background: colorForApp(app, palette) }} />
           {app}
         </li>
       ))}
@@ -75,14 +73,16 @@ function Legend({ apps }) {
 export function UsageCard() {
   const { data, error, loading } = usePolling('/api/usage', 60_000)
   const [view, setView] = useState('chart')
+  const palette = usePalette()
+  const { grid: GRID, axisText: AXIS_TEXT, surface: SURFACE, cursor: CURSOR } = palette
 
   const totals = useMemo(
     () =>
       (data?.totals ?? []).map((row) => ({
         ...row,
-        fill: colorForApp(row.app),
+        fill: colorForApp(row.app, palette),
       })),
-    [data],
+    [data, palette],
   )
   const apps = data?.top_apps ?? []
   const daily = data?.daily ?? []
@@ -184,7 +184,7 @@ export function UsageCard() {
               />
               <Tooltip
                 content={<TotalTooltip />}
-                cursor={{ fill: 'rgba(0,255,204,0.05)' }}
+                cursor={{ fill: CURSOR }}
               />
               <Bar
                 dataKey="hours"
@@ -234,14 +234,14 @@ export function UsageCard() {
               />
               <Tooltip
                 content={<UsageTooltip />}
-                cursor={{ fill: 'rgba(0,255,204,0.05)' }}
+                cursor={{ fill: CURSOR }}
               />
               {apps.map((app, index) => (
                 <Bar
                   key={app}
                   dataKey={app}
                   stackId="day"
-                  fill={colorForApp(app)}
+                  fill={colorForApp(app, palette)}
                   /* surface-colored stroke = a 2px gap between segments */
                   stroke={SURFACE}
                   strokeWidth={2}
@@ -254,7 +254,7 @@ export function UsageCard() {
           </ResponsiveContainer>
           </div>
         </div>
-        <Legend apps={apps} />
+        <Legend apps={apps} palette={palette} />
       </div>
     )
   }

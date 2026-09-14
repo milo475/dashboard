@@ -47,6 +47,11 @@ class TTLCache:
             }
         return value, self._entries[key]["at_wall"], False
 
+    def invalidate(self, key):
+        """Forget a value so the next read refreshes - after a local write."""
+        with self._lock:
+            self._entries.pop(key, None)
+
     def peek(self, key):
         with self._lock:
             entry = self._entries.get(key)

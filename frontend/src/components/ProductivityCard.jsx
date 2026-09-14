@@ -2,7 +2,8 @@ import { useMemo } from 'react'
 import { Card, StateBlock } from './Card.jsx'
 import { Sparkline } from './Sparkline.jsx'
 import { usePolling } from '../api.js'
-import { ACCENT, CATEGORY, DOWN, UP, WARN } from '../theme.js'
+import { categoryColors } from '../theme.js'
+import { usePalette } from '../ThemeContext.jsx'
 
 const ORDER = ['productive', 'neutral', 'leisure']
 
@@ -16,15 +17,17 @@ function fmtMinutes(minutes) {
   return m === 0 ? `${h}h` : `${h}h ${m}m`
 }
 
-function scoreColor(score) {
-  if (score == null) return ACCENT
-  if (score >= 70) return UP
-  if (score >= 40) return WARN
-  return DOWN
+function scoreColor(score, palette) {
+  if (score == null) return palette.accent
+  if (score >= 70) return palette.up
+  if (score >= 40) return palette.warn
+  return palette.down
 }
 
 export function ProductivityCard() {
   const { data, error, loading } = usePolling('/api/productivity', 60_000)
+  const palette = usePalette()
+  const CATEGORY = useMemo(() => categoryColors(palette), [palette])
 
   const today = data?.today
   const trend = useMemo(
@@ -75,7 +78,7 @@ export function ProductivityCard() {
     )
   } else {
     const total = ORDER.reduce((sum, key) => sum + (today[`${key}_minutes`] || 0), 0) || 1
-    const color = scoreColor(today.score)
+    const color = scoreColor(today.score, palette)
     body = (
       <div className="prod">
         <div className="prod-head">

@@ -1,9 +1,60 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="cream">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>HOME // DASHBOARD</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%231f1c19%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%277%27 fill=%27%23f3efe7%27/%3E%3C/svg%3E" />
+    <script>
+      // Apply the saved theme before the first paint so a noir board does not
+      // flash cream (or vice versa) while React boots. ?theme= wins.
+      (function () {
+        var theme = 'cream'
+        try {
+          var fromUrl = new URLSearchParams(location.search).get('theme')
+          var stored = localStorage.getItem('dashboard.theme.v1')
+          var pick = fromUrl || stored
+          if (pick === 'noir' || pick === 'cream') theme = pick
+        } catch (e) {
+          /* no storage here */
+        }
+        document.documentElement.dataset.theme = theme
+      })()
+    </script>
+    <script>
+      // Kiosk watchdog: a dashboard that runs unattended must never sit on a
+      // blank page (a module that failed to load while the code was being
+      // edited, a dropped dev-server connection). If nothing has rendered
+      // after 20s, reload - with a cap, so a genuinely broken build does not
+      // hammer the server forever.
+      (function () {
+        var KEY = 'dashboard.watchdog'
+        var attempts = 0
+        try {
+          attempts = Number(sessionStorage.getItem(KEY) || 0)
+        } catch (e) {
+          /* no storage */
+        }
+        setTimeout(function () {
+          var root = document.getElementById('root')
+          if (root && root.childElementCount > 0) {
+            try {
+              sessionStorage.removeItem(KEY)
+            } catch (e) {
+              /* ignore */
+            }
+            return
+          }
+          if (attempts >= 5) return
+          try {
+            sessionStorage.setItem(KEY, String(attempts + 1))
+          } catch (e) {
+            /* ignore */
+          }
+          location.reload()
+        }, 20000 * (attempts + 1))
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

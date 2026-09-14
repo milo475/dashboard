@@ -7,7 +7,7 @@ import os
 import socket
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
 from services.activitywatch import ActivityWatchClient, ActivityWatchError
@@ -16,6 +16,9 @@ from services.focus import FocusError, FocusStore, FocusValidationError
 from services.github import GitHubClient, GitHubError
 from services.launcher import launch_claude
 from services.news import NewsError, fetch as fetch_news
+from services.photos import PhotoError, PhotoLibrary
+from services.places import Places, PlacesError
+from services.planner import PlannerError, PlannerStore, PlannerValidationError
 from services.productivity import ProductivityService
 from services.stocks import StocksClient, StocksError
 from services.system import SystemError, SystemMonitor
@@ -29,6 +32,8 @@ NEWS_TTL = 3600     # hourly, per the news sources' etiquette
 SYSTEM_TTL = 2      # kernel counters; the card polls every 5s
 GITHUB_TTL = 300    # 60 req/h unauthenticated, so 5 minutes is plenty
 PRODUCTIVITY_TTL = 60
+FILES_TTL = 20      # a directory scan; the card polls every 30s
+PHOTOS_TTL = 30
 
 # How long a failing endpoint may keep serving its last good value before it
 # admits defeat and the card switches to "no data".
@@ -41,6 +46,7 @@ PRODUCTIVITY_MAX_STALE = 10 * 60
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
+app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024  # a batch of phone photos
 
 cache = TTLCache()
 aw_client = ActivityWatchClient(
@@ -57,6 +63,9 @@ github_client = GitHubClient(
 productivity = ProductivityService(
     aw_client, os.path.join(BASE_DIR, "productivity_rules.json")
 )
+planner_store = PlannerStore(os.path.join(BASE_DIR, "data", "planner.json"))
+places = Places(os.path.join(BASE_DIR, "data", "folders.json"))
+photos = PhotoLibrary(os.getenv("PHOTOS_DIR", os.path.join(BASE_DIR, "data", "photos")))
 
 
 def envelope(payload, fetched_at, stale):
@@ -213,6 +222,141 @@ def post_pomodoro():
 def launch():
     ok, detail = launch_claude()
     return jsonify({"ok": ok, **detail}), (200 if ok else 500)
+
+
+# ---------- Planner page ----------
+# To-do lists, the weekly schedule and the morning routine are local state like
+# the goals: read and written straight through, never cached.
+def _planner_read(producer):
+    try:
+        return jsonify(producer())
+    except PlannerError as exc:
+        return unavailable(exc, hint="Check that backend/data/ is writable.")
+    except Exception as exc:  # noqa: BLE001
+        return unavailable(exc)
+
+
+def _planner_write(producer):
+    try:
+        return jsonify(producer())
+    except PlannerValidationError as exc:
+        return unavailable(exc, hint="The dashboard sent an invalid planner update.")
+    except PlannerError as exc:
+        return unavailable(exc, hint="Check that backend/data/ is writable.")
+    except Exception as exc:  # noqa: BLE001
+        return unavailable(exc)
+
+
+@app.get("/api/todos")
+def get_todos():
+    return _planner_read(planner_store.todos)
+
+
+@app.post("/api/todos")
+def post_todos():
+    body = request.get_json(silent=True) or {}
+    return _planner_write(lambda: planner_store.replace_todos(body.get("lists", {})))
+
+
+@app.get("/api/schedule")
+def get_schedule():
+    return _planner_read(planner_store.schedule)
+
+
+@app.post("/api/schedule")
+def post_schedule():
+    body = request.get_json(silent=True) or {}
+    return _planner_write(lambda: planner_store.replace_schedule(body.get("days", {})))
+
+
+@app.get("/api/routine")
+def get_routine():
+    return _planner_read(planner_store.routine)
+
+
+@app.post("/api/routine")
+def post_routine():
+    body = request.get_json(silent=True) or {}
+    if "toggle" in body:
+        return _planner_write(
+            lambda: planner_store.set_routine_done(body.get("toggle"), bool(body.get("done", True)))
+        )
+    return _planner_write(lambda: planner_store.replace_routine(body.get("items", [])))
+
+
+@app.get("/api/folders")
+def get_folders():
+    try:
+        return jsonify(places.folders())
+    except Exception as exc:  # noqa: BLE001
+        return unavailable(exc, hint="Check backend/data/folders.json.")
+
+
+@app.get("/api/files")
+def get_files():
+    try:
+        data, at, stale = cache.get_or_refresh("files", FILES_TTL, places.files, 5 * 60)
+    except Exception as exc:  # noqa: BLE001
+        return unavailable(exc, hint="Check files_dirs in backend/data/folders.json.")
+    return envelope(data, at, stale)
+
+
+@app.post("/api/open")
+def post_open():
+    body = request.get_json(silent=True) or {}
+    try:
+        result = places.open(folder=body.get("folder"), file=body.get("file"))
+    except PlacesError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    except Exception as exc:  # noqa: BLE001
+        return jsonify({"ok": False, "error": str(exc)}), 500
+    return jsonify(result)
+
+
+@app.get("/api/photos")
+def get_photos():
+    try:
+        data, at, stale = cache.get_or_refresh("photos", PHOTOS_TTL, photos.list, 10 * 60)
+    except Exception as exc:  # noqa: BLE001
+        return unavailable(exc, hint="Create backend/data/photos and drop images in it.")
+    if not data.get("available", True):
+        return jsonify(data)
+    return envelope(data, at, stale)
+
+
+@app.get("/api/photos/<path:name>")
+def get_photo(name):
+    # send_from_directory refuses anything that escapes the photos directory.
+    return send_from_directory(photos.directory, name, max_age=3600)
+
+
+@app.post("/api/photos")
+def post_photos():
+    files = request.files.getlist("photos")
+    if not files:
+        return jsonify({"available": False, "error": "no files in the upload"}), 400
+    try:
+        saved, rejected = photos.save(files)
+    except OSError as exc:
+        return unavailable(exc, hint="Check that backend/data/photos is writable.")
+    cache.invalidate("photos")
+    data = photos.list()
+    data.update({"saved": saved, "rejected": rejected})
+    return jsonify(data)
+
+
+@app.delete("/api/photos/<path:name>")
+def delete_photo(name):
+    try:
+        removed = photos.remove(name)
+    except PhotoError as exc:
+        return jsonify({"available": False, "error": str(exc)}), 404
+    except OSError as exc:
+        return unavailable(exc)
+    cache.invalidate("photos")
+    data = photos.list()
+    data["removed"] = removed
+    return jsonify(data)
 
 
 if __name__ == "__main__":

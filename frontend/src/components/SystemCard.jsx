@@ -2,9 +2,7 @@ import { useMemo } from 'react'
 import { Card, StateBlock } from './Card.jsx'
 import { Sparkline } from './Sparkline.jsx'
 import { usePolling } from '../api.js'
-import { ACCENT_SOFT, DOWN, UP, WARN } from '../theme.js'
-
-const TEMP_COLOR = { normal: UP, warm: WARN, hot: DOWN, unknown: '#6b7688' }
+import { usePalette } from '../ThemeContext.jsx'
 
 function bytes(value) {
   if (value == null) return '—'
@@ -57,6 +55,8 @@ function Meter({ label, percent, detail, color }) {
 
 export function SystemCard() {
   const { data, error, loading } = usePolling('/api/system', 5_000)
+  const { up: UP, down: DOWN, warn: WARN, accentSoft: ACCENT_SOFT, blue: BLUE, neutral: NEUTRAL } = usePalette()
+  const TEMP_COLOR = { normal: UP, warm: WARN, hot: DOWN, unknown: NEUTRAL }
 
   const history = data?.history ?? []
   const series = useMemo(
@@ -137,7 +137,7 @@ export function SystemCard() {
             label="DISK"
             percent={disk.percent}
             detail={`${bytes(disk.used)} / ${bytes(disk.total)} · ${disk.mount}`}
-            color="#0081c6"
+            color={BLUE}
           />
         </div>
 

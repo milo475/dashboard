@@ -3,7 +3,7 @@ import { Card, StateBlock } from './Card.jsx'
  * The Finnhub free tier has no candle endpoint, so the series builds up live. */
 import { Sparkline } from './Sparkline.jsx'
 import { usePolling } from '../api.js'
-import { DOWN, UP } from '../theme.js'
+import { usePalette } from '../ThemeContext.jsx'
 
 const money = (value) =>
   typeof value === 'number'
@@ -12,6 +12,7 @@ const money = (value) =>
 
 export function StocksCard() {
   const { data, error, loading } = usePolling('/api/stocks', 60_000)
+  const { up: UP, down: DOWN } = usePalette()
 
   let body
   if (loading && !data) {
