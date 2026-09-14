@@ -32,7 +32,7 @@ function FileIcon({ kind }) {
 /* Folder shortcuts and the newest files, each opening on the desktop through
  * the backend (it only opens paths it listed itself). */
 export function PlacesCard() {
-  const folders = usePolling('/api/folders', 300_000)
+  const folders = usePolling('/api/folders', 60_000) // folders.json edits show within a minute
   const files = usePolling('/api/files', 30_000)
   const [status, setStatus] = useState(null)
   const [now, setNow] = useState(() => Date.now())

@@ -24,7 +24,7 @@ DEFAULT_FOLDERS = [
     ("studexa", "Studexa", "~/studexa"),
 ]
 DEFAULT_FILES_DIRS = ["~/Downloads", "~/Desktop", "~/Documents"]
-MAX_FOLDERS = 10
+MAX_FOLDERS = 12
 MAX_FILES = 8
 SKIP_SUFFIXES = (".part", ".crdownload", ".tmp", "~")
 OPENERS = [["xdg-open"], ["thunar"], ["nautilus"], ["dolphin"]]
