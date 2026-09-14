@@ -988,7 +988,8 @@ li:hover > .todo-remove, li:hover > .routine-remove, .block:hover .block-remove,
 .today-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  /* calendar and routine need the height; the photo and the day tile flex */
+  grid-template-rows: minmax(0, 1.18fr) minmax(0, 0.82fr);
   gap: 10px;
   height: 100%;
   min-height: 0;
@@ -1046,23 +1047,23 @@ li:hover > .todo-remove, li:hover > .routine-remove, .block:hover .block-remove,
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 11.5px;
   text-align: left;
   color: var(--text-primary);
   background: transparent;
   border: 0;
   border-radius: 8px;
-  padding: 3px 6px;
+  padding: 2px 6px;
   cursor: pointer;
 }
 .routine-toggle:hover { background: var(--hover); }
 .routine-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .routine-box {
   flex: 0 0 auto;
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
   border: 1.5px solid var(--text-muted);
   display: grid;
@@ -1074,7 +1075,10 @@ li:hover > .todo-remove, li:hover > .routine-remove, .block:hover .block-remove,
 .routine-list li.done .routine-text { text-decoration: line-through; color: var(--text-muted); }
 .routine-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .routine-empty { font-size: 11px; color: var(--text-muted); padding: 4px 6px; }
-.routine-add { margin-top: 4px; }
+/* The add row only appears when the tile is hovered or focused, like a
+ * desktop widget: the list itself is what should be visible all day. */
+.routine-add { margin-top: 4px; display: none; }
+.tile-routine:hover .routine-add, .tile-routine:focus-within .routine-add { display: flex; }
 .routine-add input { font-size: 11px; padding: 3px 8px; background: transparent; border-radius: 6px; }
 .routine-add button { padding: 0 8px; font-size: 9px; background: transparent; border-color: transparent; }
 
